@@ -29,6 +29,7 @@ J_Point jacobian_left_to_right_binary(J_Point p, mpz_t a, mpz_t k, mpz_t modulo)
 Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo);
 /** Montgomery ladder algorithm */
 Point affine_montgomery_ladder(Point p, mpz_t a, mpz_t k, mpz_t modulo);
+J_Point jacobian_montgomery_ladder(J_Point p, mpz_t a, mpz_t k, mpz_t modulo);
 
 /** Encrypt & Decrypt */
 Point encrypt_ECIES(mpz_t encrypted_message, char* message, Point public_key, Point p, mpz_t a, mpz_t modulo); // return chosen point
