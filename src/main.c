@@ -5,8 +5,10 @@
   */
 
 #include "boolean.h"
+#include "helper.h"
+#include "point.h"
+#include "j_point.h"
 #include "ecc.h"
-#include "random.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +32,7 @@ char*gy_v="4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
 char*s_v="c49d360886e704936a6678e1139d26b7819f7e90";
 char*c_v="7efba1662985be9403cb055c75d4f7e0ce8d84a9c5114abcaf3177680104fa0d";
 
-long long max_iteration = 10;
+long long max_iteration = 1;
 
 static struct timeval tm1;
 
@@ -71,7 +73,7 @@ int main() {
 	/** Test Left-to-right binary algorithm */
 	start(); // start operation
 	while (i < max_iteration) {
-		next_p = left_to_right_binary(p, a, k, modulo); // Q = [k]P
+		next_p = affine_left_to_right_binary(p, a, k, modulo); // Q = [k]P
 		// gmp_printf("%lld: %Zd %Zd\n", i, next_p.x, next_p.y);
 		i++;
 	}
@@ -82,7 +84,7 @@ int main() {
 	start(); // start operation
 	i = 0;
 	while (i < max_iteration) {
-		next_p = right_to_left_binary(p, a, k, modulo); // Q = [k]P
+		next_p = affine_right_to_left_binary(p, a, k, modulo); // Q = [k]P
 		//gmp_printf("%d: %Zd %Zd\n", i, next_p.x, next_p.y);
 		i++;
 	}
@@ -93,7 +95,7 @@ int main() {
 	start(); // start operation
 	i = 0;
 	while (i < max_iteration) {
-		next_p = montgomery_ladder(p, a, k, modulo); // Q = [k]P
+		next_p = affine_montgomery_ladder(p, a, k, modulo); // Q = [k]P
 		//gmp_printf("%d: %Zd %Zd\n", i, next_p.x, next_p.y);
 		i++;
 	}
@@ -110,8 +112,8 @@ int main() {
 	get_random(private_key_2, 32); // 256 bit
 
 	gmp_printf("Private key [A B]: %Zd %Zd\n\n", private_key_1, private_key_2);
-	public_key_1 = left_to_right_binary(p, a, private_key_1, modulo);
-	public_key_2 = left_to_right_binary(p, a, private_key_2, modulo);
+	public_key_1 = affine_left_to_right_binary(p, a, private_key_1, modulo);
+	public_key_2 = affine_left_to_right_binary(p, a, private_key_2, modulo);
 
 	gmp_printf("Public key 1 [X Y]: %Zd %Zd\n", public_key_1.x, public_key_1.y);
 	gmp_printf("Public key 2 [X Y]: %Zd %Zd\n\n", public_key_2.x, public_key_2.y);
@@ -122,21 +124,21 @@ int main() {
 	mpz_t k_message;
 	mpz_init(k_message);
 	mpz_set_str(k_message, "123456789", 10);
-	message = left_to_right_binary(p, a, k_message, modulo);
-	gmp_printf("[ENCRYPT] Message [X Y]: %Zd %Zd\n", message.x, message.y);
+	message = affine_left_to_right_binary(p, a, k_message, modulo);
+	gmp_printf("[Encrypt] Message [X Y]: %Zd %Zd\n", message.x, message.y);
 	get_random(k_message, 32);
 	// Encrypt example
-	chosen_point = left_to_right_binary(p, a, k_message, modulo); // chosen point (r)
-	gmp_printf("[ENCRYPT] Chosen point [X Y]: %Zd %Zd\n", chosen_point.x, chosen_point.y);
-	encoded_point = left_to_right_binary(public_key_2, a, k_message, modulo); // r * Pu2
+	chosen_point = affine_left_to_right_binary(p, a, k_message, modulo); // chosen point (r)
+	gmp_printf("[Encrypt] Chosen point [X Y]: %Zd %Zd\n", chosen_point.x, chosen_point.y);
+	encoded_point = affine_left_to_right_binary(public_key_2, a, k_message, modulo); // r * Pu2
 	encoded_point = affine_curve_addition(message, encoded_point, a, modulo);
 	// TODO : chosen_point & encoded_point should be padded to P-bit
-	gmp_printf("[ENCRYPT] Encoded point [X Y]: %Zd %Zd\n", encoded_point.x, encoded_point.y);
+	gmp_printf("[Decrypt] Encoded point [X Y]: %Zd %Zd\n", encoded_point.x, encoded_point.y);
 	
 	// Decrypt example (encoded_point - private_key * chosen_point)
-	decoded_point = left_to_right_binary(chosen_point, a, private_key_2, modulo);
+	decoded_point = affine_left_to_right_binary(chosen_point, a, private_key_2, modulo);
 	decoded_point = affine_curve_substraction(encoded_point, decoded_point, a, modulo);
-	gmp_printf("[DECRYPT] Original message [X Y]: %Zd %Zd\n\n", decoded_point.x, decoded_point.y);
+	gmp_printf("[Decrypt] Original message [X Y]: %Zd %Zd\n\n", decoded_point.x, decoded_point.y);
 
 	/** -------------------------------------------------------------------------*/
 	// Simplified ECIES (Ref: Page 256 Cryptography Theory & Practice 2nd Ed. - Douglas)
@@ -150,7 +152,7 @@ int main() {
 	/** -------------------------------------------------------------------------*/
 	// TODO : Public key validation!
 	// Shared key (ECDH) - key secure exchange
-	shared_key = left_to_right_binary(public_key_2, a, private_key_1, modulo);
+	shared_key = affine_left_to_right_binary(public_key_2, a, private_key_1, modulo);
 	gmp_printf("Shared key [X Y]: %Zd %Zd\n", shared_key.x, shared_key.y);
 
 	// TODO : ECDSA - digital signature algorithm (Consider + ECDH)
