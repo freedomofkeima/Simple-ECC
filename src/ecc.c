@@ -42,6 +42,27 @@ Point affine_left_to_right_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo) {
 	return results;
 }
 
+J_Point jacobian_left_to_right_binary(J_Point p, mpz_t a, mpz_t k, mpz_t modulo) {
+	J_Point results, temp;
+	results = copy_j_point(p); // R0	
+	temp = copy_j_point(p); // R1
+
+	int i; // loop variable
+	char * binary;
+	int binary_size = 0;
+
+	binary = mpz_get_str(NULL, 2, k);
+	binary_size = (int) strlen(binary);
+
+
+	for (i = binary_size - 2; i >= 0; i--) { // i = n-2 downto 0
+		results = jacobian_curve_doubling(results, a, modulo);
+		if (binary[binary_size - i - 1] == '1') results = jacobian_curve_addition(results, temp, a, modulo);
+	}
+
+	return results;
+}
+
 /** Right-to-left binary algorithm */
 Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo) {
 	Point results, temp;

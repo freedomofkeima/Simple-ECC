@@ -24,6 +24,7 @@
 
 /** Left-to-right binary algorithm */
 Point affine_left_to_right_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo);
+J_Point jacobian_left_to_right_binary(J_Point p, mpz_t a, mpz_t k, mpz_t modulo);
 /** Right-to-left binary algorithm */
 Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo);
 /** Montgomery ladder algorithm */

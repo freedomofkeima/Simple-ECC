@@ -32,7 +32,7 @@ char*gy_v="4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
 char*s_v="c49d360886e704936a6678e1139d26b7819f7e90";
 char*c_v="7efba1662985be9403cb055c75d4f7e0ce8d84a9c5114abcaf3177680104fa0d";
 
-long long max_iteration = 1;
+long long max_iteration = 100;
 
 static struct timeval tm1;
 
@@ -70,14 +70,31 @@ int main() {
 
 	get_random(k, 32); // generate random test
 
+	// Convert Affine coordinate to Jacobian coordinate
+	J_Point j_p, j_next_p;
+	j_next_p = init_j_point(j_next_p);
+	j_p = affine_to_jacobian(p); // Generator point
+
 	/** Test Left-to-right binary algorithm */
 	start(); // start operation
 	while (i < max_iteration) {
 		next_p = affine_left_to_right_binary(p, a, k, modulo); // Q = [k]P
-		// gmp_printf("%lld: %Zd %Zd\n", i, next_p.x, next_p.y);
+		// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 		i++;
 	}
-	printf("--Left to right binary algorithm--\n");
+	printf("--[AFFINE] Left to right binary algorithm--\n");
+	stop(); // stop operation
+
+	start(); // start operation
+	i = 0;
+	while (i < max_iteration) {
+		j_next_p = jacobian_left_to_right_binary(j_p, a, k, modulo); // Q = [k]P
+		// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
+		next_p = jacobian_to_affine(j_next_p, modulo);
+		// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+		i++;
+	}
+	printf("--[JACOBIAN] Left to right binary algorithm--\n");
 	stop(); // stop operation
 
 	/** Test Right-to-left binary algorithm */
@@ -85,10 +102,10 @@ int main() {
 	i = 0;
 	while (i < max_iteration) {
 		next_p = affine_right_to_left_binary(p, a, k, modulo); // Q = [k]P
-		//gmp_printf("%d: %Zd %Zd\n", i, next_p.x, next_p.y);
+		// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 		i++;
 	}
-	printf("--Right to left binary algorithm--\n");
+	printf("--[AFFINE] Right to left binary algorithm--\n");
 	stop(); // stop operation
 
 	/** Test Montgomery ladder algorithm (Against time-based attack) */
@@ -96,10 +113,10 @@ int main() {
 	i = 0;
 	while (i < max_iteration) {
 		next_p = affine_montgomery_ladder(p, a, k, modulo); // Q = [k]P
-		//gmp_printf("%d: %Zd %Zd\n", i, next_p.x, next_p.y);
+		//gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 		i++;
 	}
-	printf("--Montgomery ladder algorithm--\n");
+	printf("--[AFFINE] Montgomery ladder algorithm--\n");
 	stop(); // stop operation
 
 	/** -------------------------------------------------------------------------*/
@@ -123,7 +140,7 @@ int main() {
 	Point message, chosen_point, encoded_point, decoded_point;
 	mpz_t k_message;
 	mpz_init(k_message);
-	mpz_set_str(k_message, "123456789", 10);
+	mpz_set_ui(k_message, 123456789);
 	message = affine_left_to_right_binary(p, a, k_message, modulo);
 	gmp_printf("[Encrypt] Message [X Y]: %Zd %Zd\n", message.x, message.y);
 	get_random(k_message, 32);

@@ -100,6 +100,9 @@ Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo) {
 	Point results;
 	results = init_point(results);
 
+	// Case p is a point in infinity
+	if (p.isInf) return p;
+
 	// Case y = 0
 	mpz_t zero_value;
 	mpz_init(zero_value);
@@ -113,13 +116,13 @@ Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo) {
 	mpz_init(lh); mpz_init(rh);
 
 	/** Create (2y)^-1 % m */
-	mpz_set_str(mul, "2", 10);
+	mpz_set_ui(mul, 2);
 	mpz_mul(lh, mul, p.y);
 	// Assuming inverse exists (retval = 1)
 	mpz_invert(lh, lh, modulo);
 
-	mpz_set_str(mul, "3", 10);
-	mpz_mul(rh, p.x, p.x); // x^2
+	mpz_set_ui(mul, 3);
+	mpz_mul(rh, p.x, p.x);
 	positive_modulo(rh, rh, modulo); // x^2 % m
 	mpz_mul(rh, rh, mul); // (3x^2)
 	mpz_add(rh, rh, a); // (3x^2 + a)
@@ -130,6 +133,7 @@ Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo) {
 
 	/** new_x = lambda^2 - 2 * previous_x */
 	mpz_mul(results.x, lambda, lambda);
+	positive_modulo(results.x, results.x, modulo);
 	mpz_sub(results.x, results.x, p.x);
 	mpz_sub(results.x, results.x, p.x);
 	positive_modulo(results.x, results.x, modulo);
