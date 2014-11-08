@@ -35,7 +35,9 @@ Point copy_point(Point p);
 int compare_point(Point p, Point q);
 int compare_point_negate(Point p, Point q);
 
+// t(A + A) = 2M + S + I
 Point affine_curve_addition(Point p, Point q, mpz_t a, mpz_t modulo);
+// t(2A) = 2M + 2S + I
 Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo);
 Point affine_curve_substraction(Point p, Point q, mpz_t a, mpz_t modulo);
 

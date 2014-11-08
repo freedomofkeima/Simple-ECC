@@ -63,6 +63,26 @@ J_Point jacobian_left_to_right_binary(J_Point p, mpz_t a, mpz_t k, mpz_t modulo)
 	return results;
 }
 
+J_Point jacobian_affine_left_to_right_binary(J_Point p, Point q, mpz_t a, mpz_t k, mpz_t modulo) {
+	J_Point results;
+	results = copy_j_point(p); // R0	
+
+	int i; // loop variable
+	char * binary;
+	int binary_size = 0;
+
+	binary = mpz_get_str(NULL, 2, k);
+	binary_size = (int) strlen(binary);
+
+
+	for (i = binary_size - 2; i >= 0; i--) { // i = n-2 downto 0
+		results = jacobian_curve_doubling(results, a, modulo);
+		if (binary[binary_size - i - 1] == '1') results = jacobian_affine_curve_addition(results, q, a, modulo);
+	}
+
+	return results;
+}
+
 /** Right-to-left binary algorithm */
 Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo) {
 	Point results, temp;
@@ -86,32 +106,6 @@ Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo) {
 }
 
 /** Montgomery ladder algorithm */
-Point affine_montgomery_ladder(Point p, mpz_t a, mpz_t k, mpz_t modulo) {
-	Point results, temp;
-	results = init_point(results);
-	results.isInf = true;
-	temp = copy_point(p);
-
-	int i; // loop variable
-	char * binary;
-	int binary_size = 0;
-
-	binary = mpz_get_str(NULL, 2, k);
-	binary_size = (int) strlen(binary);
-
-	for (i = binary_size - 1; i >= 0; i--) { // i = n-1 downto 0
-		if (binary[binary_size - i - 1] == '1') {
-			results = affine_curve_addition(results, temp, a, modulo);
-			temp = affine_curve_doubling(temp, a, modulo);
-		} else {
-			temp = affine_curve_addition(results, temp, a, modulo);
-			results = affine_curve_doubling(results, a, modulo);
-		}
-	}
-
-	return results;
-}
-
 J_Point jacobian_montgomery_ladder(J_Point p, mpz_t a, mpz_t k, mpz_t modulo) {
 	J_Point results, temp;
 	results = init_j_point(results);

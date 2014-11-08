@@ -59,7 +59,7 @@ int compare_j_point_negate(J_Point p, J_Point q) {
 	return compare_j_point(p, q);
 }
 
-
+// TODO: Simplify with Algorithm 15
 J_Point jacobian_curve_addition(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 	// Case INF
 	if (p.isInf) return q;
@@ -207,7 +207,6 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 		}
 	}
 
-	// TODO: Check both methods
 	mpz_t S, M, temp, temp2;
 	mpz_init(S); mpz_init(M); 
 	mpz_init(temp); mpz_init(temp2);
@@ -251,6 +250,90 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 J_Point jacobian_curve_substraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 	mpz_neg(q.Y, q.Y);
 	return jacobian_curve_addition(p, q, a, modulo);
+}
+
+/** Mixed Coordinates */
+J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo) {
+	// Case INF
+	if (p.isInf) return affine_to_jacobian(q);
+	if (q.isInf) return p;
+
+	J_Point results;
+	results = init_j_point(results);
+	mpz_set(results.Z, p.Z);
+
+	mpz_t temp;
+	mpz_init(temp);
+	mpz_mul(temp, q.x, p.Z);
+	positive_modulo(temp, temp, modulo);
+
+	if (mpz_cmp(temp, p.X) == 0) {
+		mpz_mul(temp, q.y, p.Z);
+		positive_modulo(temp, temp, modulo);
+		if (mpz_cmp(temp, p.Y) == 0) {
+			return jacobian_curve_doubling(p, a, modulo);
+		} else {
+			results.isInf = true;
+			return results;
+		}
+	}
+
+	mpz_t two, B, D, E, F;
+	mpz_init(two); mpz_init(B); 
+	mpz_init(D); mpz_init(E); 
+	mpz_init(F);
+	mpz_set_ui(two, 2);
+
+	mpz_mul(results.Y, p.Z, p.Z); // Z1^2
+	positive_modulo(results.Y, results.Y, modulo);
+
+	mpz_mul(B, q.x, results.Y); // B = x2 * Z1^2
+	positive_modulo(B, B, modulo);
+
+	mpz_mul(D, q.y, p.Z); // y2 * Z1
+	positive_modulo(D, D, modulo);
+	mpz_mul(D, D, results.Y); // D = y2 * Z1^3
+	positive_modulo(D, D, modulo);
+
+	mpz_sub(E, p.X, B); // E = X1 - x2 * Z1^2
+	mpz_mul(results.Z, p.Z, E); // Z1 * (X1 - x2 * Z1^2)
+	positive_modulo(results.Z, results.Z, modulo);
+
+	mpz_sub(F, p.Y, D); // F = Y1 - y2 * Z1^2
+	mpz_mul(results.Y, E, E); // [Z1 * (X1 - x2 * Z1^2)]^2
+	positive_modulo(results.Y, results.Y, modulo);
+	
+	mpz_mul(results.X, F, F); // [Y1 - y2 * Z1^2]^2
+	positive_modulo(results.X, results.X, modulo);
+
+	mpz_mul(B, B, results.Y); // (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2
+	positive_modulo(B, B, modulo);
+
+	mpz_mul(E, results.Y, E); // [Z1 * (X1 - x2 * Z1^2)]^3
+	positive_modulo(E, E, modulo);
+
+	mpz_sub(results.X, results.X, E); // [Y1 - y2 * Z1^2]^2 - [Z1 * (X1 - x2 * Z1^2)]^3
+	mpz_mul(results.Y, B, two); // 2 * (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2
+	positive_modulo(results.X, results.X, modulo);
+	mpz_sub(results.X, results.X, results.Y); // [Y1 - y2 * Z1^2]^2 - [Z1 * (X1 - x2 * Z1^2)]^3 - 2 * (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2
+	positive_modulo(results.X, results.X, modulo);
+
+	mpz_sub(B, B, results.X); // (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2 - X3
+	mpz_mul(F, F, B); // (Y1 - y2 * Z1^2) * ((x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2 - X3)
+	positive_modulo(F, F, modulo);
+
+	mpz_mul(results.Y, D, E); // (y2 * Z1^3) * [Z1 * (X1 - x2 * Z1^2)]^3
+	positive_modulo(results.Y, results.Y, modulo);
+
+	mpz_sub(results.Y, F, results.Y);
+	positive_modulo(results.Y, results.Y, modulo);
+
+	return results;
+}
+
+J_Point jacobian_affine_curve_substraction(J_Point p, Point q, mpz_t a, mpz_t modulo) {
+	mpz_neg(q.y, q.y);
+	return jacobian_affine_curve_substraction(p, q, a, modulo);
 }
 
 /** Convert Affine <-> Jacobian */

@@ -25,10 +25,10 @@
 /** Left-to-right binary algorithm */
 Point affine_left_to_right_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo);
 J_Point jacobian_left_to_right_binary(J_Point p, mpz_t a, mpz_t k, mpz_t modulo);
+J_Point jacobian_affine_left_to_right_binary(J_Point p, Point q, mpz_t a, mpz_t k, mpz_t modulo);
 /** Right-to-left binary algorithm */
 Point affine_right_to_left_binary(Point p, mpz_t a, mpz_t k, mpz_t modulo);
 /** Montgomery ladder algorithm */
-Point affine_montgomery_ladder(Point p, mpz_t a, mpz_t k, mpz_t modulo);
 J_Point jacobian_montgomery_ladder(J_Point p, mpz_t a, mpz_t k, mpz_t modulo);
 
 /** Encrypt & Decrypt */
