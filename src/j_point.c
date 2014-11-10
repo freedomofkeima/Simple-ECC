@@ -324,7 +324,7 @@ J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo
 
 J_Point jacobian_affine_curve_substraction(J_Point p, Point q, mpz_t a, mpz_t modulo) {
 	mpz_neg(q.y, q.y);
-	return jacobian_affine_curve_substraction(p, q, a, modulo);
+	return jacobian_affine_curve_addition(p, q, a, modulo);
 }
 
 /** Convert Affine <-> Jacobian */

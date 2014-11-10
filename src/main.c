@@ -81,6 +81,7 @@ int main() {
 	j_next_p = init_j_point(j_next_p);
 	j_p = affine_to_jacobian(p); // Generator point
 
+
 	if (TEST_SCALAR_MULTIPLICATION) {
 		while (mpz_cmp(k, zero_value) == 0) {
 			get_random(k, 32); // generate random test (256 bits)
@@ -123,6 +124,20 @@ int main() {
 		}
 		printf("--[JACOBIAN-AFFINE] Left to right binary algorithm--\n");
 		stop(); // stop operation
+
+		start(); // start operation
+		int w = 4; // windows size
+		i = 0;
+		while (i < max_iteration) {
+			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
+			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
+			next_p = jacobian_to_affine(j_next_p, modulo);
+			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			i++;
+		}
+		printf("--[SLIDING_NAF-JACOBIAN-AFFINE] Left to right binary algorithm (w = 4)--\n");
+		stop(); // stop operation
+
 
 		/** Test Right-to-left binary algorithm */
 		start(); // start operation
