@@ -116,8 +116,7 @@ Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo) {
 	mpz_init(lh); mpz_init(rh);
 
 	/** Create (2y)^-1 % m */
-	mpz_set_ui(mul, 2);
-	mpz_mul(lh, mul, p.y);
+	mpz_mul_2exp(lh, p.y, 1);
 	// Assuming inverse exists (retval = 1)
 	mpz_invert(lh, lh, modulo);
 

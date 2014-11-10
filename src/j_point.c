@@ -67,19 +67,14 @@ J_Point jacobian_curve_addition(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 
 	J_Point results;
 	results = init_j_point(results);
-	mpz_t one, two, U1, U2, S1, S2;
-	mpz_init(one); mpz_init(two);
+	mpz_t one, U1, U2, S1, S2;
+	mpz_init(one);
 	mpz_init(U1); mpz_init(U2);
 	mpz_init(S1); mpz_init(S2);
 	mpz_set_ui(one, 1);
-	mpz_set_ui(two, 2);
 
-	mpz_t three;
 	mpz_t Z1;
-	mpz_init(three);
 	mpz_init(Z1);
-
-	mpz_set_ui(three, 3);
 
 	if (mpz_cmp(q.Z, one) == 0) { // case q.Z = 1
 		mpz_set(U1, p.X);
@@ -130,7 +125,7 @@ J_Point jacobian_curve_addition(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 	mpz_mul(R2, R, R); // R^2
 	positive_modulo(R2, R2, modulo);
 
-	mpz_mul(results.X, two, U1); // 2 * U1
+	mpz_mul_2exp(results.X, U1, 1); // 2 * U1 using left shift
 	mpz_mul(results.X, results.X, H2); // 2 * U1 * H^2
 	positive_modulo(results.X, results.X, modulo);
 	mpz_add(results.X, H3, results.X); // H^3 + 2 * U1 * H2
@@ -176,19 +171,16 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 	}
 
 	// Check whether a = -3
-	mpz_t check, one, two, three, four, eight, X2, Y2, Y4, Z2, Z4;
+	mpz_t check, one, three,X2, Y2, Y4, Z2, Z4;
 	mpz_init(check); 
-	mpz_init(one); mpz_init(two);
-	mpz_init(three); mpz_init(four); mpz_init(eight);
+	mpz_init(one);
+	mpz_init(three);
 	mpz_init(X2); 
 	mpz_init(Y2); mpz_init(Y4); 
 	mpz_init(Z2); mpz_init(Z4);
 	mpz_set_si(check, -3);
 	mpz_set_ui(one, 1);
-	mpz_set_ui(two, 2);
 	mpz_set_ui(three, 3);
-	mpz_set_ui(four, 4);
-	mpz_set_ui(eight, 8);
 	mpz_set(Z2, p.Z); mpz_set(Z4, p.Z);
 
 	// Pre-compute
@@ -211,7 +203,7 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 	mpz_init(S); mpz_init(M); 
 	mpz_init(temp); mpz_init(temp2);
 
-	mpz_mul(S, four, p.X); // 4 * X
+	mpz_mul_2exp(S, p.X, 2); // 4 * X using left shift
 	mpz_mul(S, S, Y2); // 4 * X * Y^2
 	positive_modulo(S, S, modulo);
 
@@ -227,7 +219,7 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 	}
 	positive_modulo(M, M, modulo);
 	
-	mpz_mul(results.X, two, S); // 2 * S
+	mpz_mul_2exp(results.X, S, 1); // 2 * S using left shift
 	mpz_mul(temp, M, M);
 	positive_modulo(temp, temp, modulo);
 	mpz_sub(results.X, temp, results.X); // M^2 - 2 * S
@@ -236,11 +228,11 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 	mpz_sub(temp, S, results.X); // S - X'
 	mpz_mul(temp, M, temp); // M * (S - X')
 	positive_modulo(temp, temp, modulo);
-	mpz_mul(results.Y, eight, Y4); // 8 * Y^4
+	mpz_mul_2exp(results.Y, Y4, 3); // 8 * Y^4 using left shift
 	mpz_sub(results.Y, temp, results.Y); // M * (S - X') - 8 * Y^4
 	positive_modulo(results.Y, results.Y, modulo);
 
-	mpz_mul(results.Z, two, p.Y); // 2 * Y
+	mpz_mul_2exp(results.Z, p.Y, 1); // 2 * Y using left shift
 	mpz_mul(results.Z, results.Z, p.Z); // 2 * Y * Z
 	positive_modulo(results.Z, results.Z, modulo);
 
@@ -278,11 +270,10 @@ J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo
 		}
 	}
 
-	mpz_t two, B, D, E, F;
-	mpz_init(two); mpz_init(B); 
+	mpz_t B, D, E, F;
+	mpz_init(B); 
 	mpz_init(D); mpz_init(E); 
 	mpz_init(F);
-	mpz_set_ui(two, 2);
 
 	mpz_mul(results.Y, p.Z, p.Z); // Z1^2
 	positive_modulo(results.Y, results.Y, modulo);
@@ -313,7 +304,7 @@ J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo
 	positive_modulo(E, E, modulo);
 
 	mpz_sub(results.X, results.X, E); // [Y1 - y2 * Z1^2]^2 - [Z1 * (X1 - x2 * Z1^2)]^3
-	mpz_mul(results.Y, B, two); // 2 * (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2
+	mpz_mul_2exp(results.Y, B, 1); // 2 * (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2 using left shift
 	positive_modulo(results.X, results.X, modulo);
 	mpz_sub(results.X, results.X, results.Y); // [Y1 - y2 * Z1^2]^2 - [Z1 * (X1 - x2 * Z1^2)]^3 - 2 * (x2 * Z1^2) * [Z1 * (X1 - x2 * Z1^2)]^2
 	positive_modulo(results.X, results.X, modulo);
