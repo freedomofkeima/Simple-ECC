@@ -62,8 +62,8 @@ int compare_j_point_negate(J_Point p, J_Point q) {
 // TODO: Simplify with Algorithm 15
 J_Point jacobian_curve_addition(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 	// Case INF
-	if (p.isInf) return q;
 	if (q.isInf) return p;
+	if (p.isInf) return q;
 
 	J_Point results;
 	results = init_j_point(results);
@@ -247,8 +247,8 @@ J_Point jacobian_curve_substraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo)
 /** Mixed Coordinates */
 J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo) {
 	// Case INF
-	if (p.isInf) return affine_to_jacobian(q);
 	if (q.isInf) return p;
+	if (p.isInf) return affine_to_jacobian(q);
 
 	J_Point results;
 	results = init_j_point(results);

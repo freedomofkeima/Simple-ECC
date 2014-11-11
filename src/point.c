@@ -54,8 +54,8 @@ int compare_point_negate(Point p, Point q) {
 
 Point affine_curve_addition(Point p, Point q, mpz_t a, mpz_t modulo) {
 	// Case INF
-	if (p.isInf) return q;
 	if (q.isInf) return p;
+	if (p.isInf) return q;
 
 	Point results;
 	results = init_point(results);

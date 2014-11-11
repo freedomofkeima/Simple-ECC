@@ -153,8 +153,8 @@ J_Point jacobian_affine_sliding_NAF(J_Point p, Point q, mpz_t a, mpz_t k, mpz_t 
 	mpz_set_ui(one, 1);
 	mpz_set_ui(two, 2);
 	mpz_set(temp, k);
-	int* naf_value = (int*) malloc(binary_size * sizeof(int));
-	for (i = 0; i < binary_size; i++) naf_value[i] = 0;
+	int* naf_value = (int*) malloc((binary_size+1) * sizeof(int));
+	for (i = 0; i <= binary_size; i++) naf_value[i] = 0;
 
 	mpz_t w_mod, temp_naf;
 	mpz_init(w_mod); mpz_init(temp_naf);
@@ -178,27 +178,35 @@ J_Point jacobian_affine_sliding_NAF(J_Point p, Point q, mpz_t a, mpz_t k, mpz_t 
 		i++;
 	}
 	/** End pre-process */
-
+	
 	/** Compute Pi = [i].P for i {1, 3, 5, ... , 2^(w-1) - 1} */
-	int size = w_mod_2 - 1;
+	int size = w_mod_2 + 1;
 	J_Point* P = (J_Point*) malloc(size * sizeof(J_Point)); // redundant allocation
 	Point* P_A = (Point*) malloc(size * sizeof(Point));
-	mpz_t k_value;
-	mpz_init(k_value);
-	for (i = 1; i <= size; i+=2) {
-		mpz_set_ui(k_value, i);
+	mpz_t k_value, sign_value;
+	mpz_init(k_value); mpz_init(sign_value);
+	P_A[0] = init_point(P_A[0]);
+	P_A[0].isInf = true;
+	// DP Optimization: P + 2P + 2P + ...
+	for (i = 1; i <= (size-1); i+=2) {
+		mpz_set_si(k_value, i);
 		P[i] = jacobian_affine_left_to_right_binary(p, q, a, k_value, modulo);
 		P_A[i] = jacobian_to_affine(P[i], modulo);
 	}
-
 	results.isInf = true;
 	for (i = binary_size; i >= 0; i--) {
 		int d = naf_value[i];
-		if (d < 0) d *= -1; // absolute value
+		mpz_set_si(k_value, d);
+		int sign = mpz_sgn(k_value);
+		mpz_set_si(sign_value, sign);
+		// Absolute value
+		d *= sign;
+		mpz_set_si(k_value, d);
 		// Jacobian doubling for w times // 2A
 		results = jacobian_curve_doubling(results, a, modulo);
-		if (naf_value[i] > 0) results = jacobian_affine_curve_addition(results, P_A[d], a, modulo); // A + Rd
-		if (naf_value[i] < 0) results = jacobian_affine_curve_substraction(results, P_A[d], a, modulo);  // A - Rd
+		mpz_mul(P_A[d].y, P_A[d].y, sign_value);
+		results = jacobian_affine_curve_addition(results, P_A[d], a, modulo); // A +- Rd
+		mpz_mul(P_A[d].y, P_A[d].y, sign_value);
 	}
 
 	return results;

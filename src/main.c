@@ -26,7 +26,7 @@
 #define TEST_ENCRYPT_DECRYPT true
 #define TEST_SIMPLIFIED_ECIES true
 
-long long max_iteration = 100;
+long long max_iteration = 1;
 
 // ECC Parameters (P-256 NIST)
 char*a_v="-3";
@@ -35,7 +35,6 @@ char*p_v="1157920892103562487626974469494075735300861434152903141955336313088670
 char*r_v="115792089210356248762697446949407573529996955224135760342422259061068512044369";
 char*gx_v="5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b";
 char*gy_v="4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
-// What is s and c?
 char*s_v="c49d360886e704936a6678e1139d26b7819f7e90";
 char*c_v="7efba1662985be9403cb055c75d4f7e0ce8d84a9c5114abcaf3177680104fa0d";
 
@@ -119,7 +118,7 @@ int main() {
 			j_next_p = jacobian_affine_left_to_right_binary(j_p, p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
-			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Left to right binary algorithm--\n");
@@ -132,12 +131,11 @@ int main() {
 			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
-			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			i++;
 		}
-		printf("--[SLIDING_NAF-JACOBIAN-AFFINE] Left to right binary algorithm (w = 4)--\n");
+		printf("--[JACOBIAN-AFFINE] Sliding NAF Left to right binary algorithm (w = 4)--\n");
 		stop(); // stop operation
-
 
 		/** Test Right-to-left binary algorithm */
 		start(); // start operation
