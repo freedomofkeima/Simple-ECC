@@ -1,23 +1,51 @@
-# Global configuration
+#--------------------------------------------
+# predefine rule
+#--------------------------------------------
+.PHONY: clean
+
+#--------------------------------------------
+# Tool configuration
+#--------------------------------------------
 CC = gcc
+LINKER = $(CC)
 EXT = c
 LIB = -lgmp
+MKDIR = mkdir -p
+INCLUDE = 
+CFLAGS += -O2 -g
+LDFLAGS = 
+
+#--------------------------------------------
+# Path configuration
+#--------------------------------------------
 MODULES = $(wildcard src/*.$(EXT))
-FLAGS += -O2 -g
+SOURCEDIR = src
+BINDIR = bin
+TARGET = main
+
+#--------------------------------------------
+# Suffix
+#--------------------------------------------
+$(BINDIR)/%.o : $(SOURCEDIR)/%.$(EXT)
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE)
 
 # Compiling main
 OBJS := ${MODULES:src/%.$(EXT)=bin/%.o}
 
-all: $(OBJS)
-	$(CC) -o bin/main $(OBJS) $(LIB)
+#--------------------------------------------
+# target
+#--------------------------------------------
+all: mkdir $(OBJS)
+	$(LINKER) -o $(BINDIR)/$(TARGET) $(OBJS) $(LIB) $(LDFLAGS)
+
+mkdir: 
+	$(MKDIR) $(BINDIR)
 
 # Run
 run:
-	bin/main
+	$(BINDIR)/$(TARGET)
 
 # Cleaning compilation
 clean:
-	rm -rf bin/*.o bin/*~
-
-bin/%.o : src/%.$(EXT)
-	$(CC) -c $< -o $@ $(FLAGS) $(INCLUDE)
+	rm -rf $(BINDIR)/*.o
+	rm -rf $(BINDIR)/*~
