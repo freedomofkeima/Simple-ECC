@@ -22,11 +22,14 @@
 #include <gmp.h>
 
 // Define your TEST here
-#define TEST_SCALAR_MULTIPLICATION true
+#define TEST_MODULAR_OPERATION true
+#define TEST_SCALAR_OPERATION true
+#define TEST_SCALAR_ALGORITHM true
 #define TEST_ENCRYPT_DECRYPT true
 #define TEST_SIMPLIFIED_ECIES true
 
-long long max_iteration = 100;
+
+long long max_iteration;
 
 // ECC Parameters (P-256 NIST)
 char*a_v="-3";
@@ -49,7 +52,7 @@ static inline void stop() {
 	gettimeofday(&tm2, NULL);
 
 	double t = 1000 * (tm2.tv_sec - tm1.tv_sec) + (tm2.tv_usec - tm1.tv_usec) / 1000;
-	printf("Average elapsed time: %.2f ms\n", (double) t / max_iteration);
+	printf("Average elapsed time: %.8f ms\n", (double) t / max_iteration);
 }
 
 int main() {
@@ -72,16 +75,14 @@ int main() {
 	mpz_set_str(p.x, gx_v, 16);
 	mpz_set_str(p.y, gy_v, 16);
 
-	mpz_t zero_value;
+	mpz_t zero_value, k2;
 	mpz_init(zero_value);
+	mpz_init(k2);
 
-	// Convert Affine coordinate to Jacobian coordinate
-	J_Point j_p, j_next_p;
-	j_next_p = init_j_point(j_next_p);
-	j_p = affine_to_jacobian(p); // Generator point
+	/** Compare ADDITION, MULTIPLICATION, and INVERSION */
+	if (TEST_MODULAR_OPERATION) {
+		max_iteration = 10000;
 
-
-	if (TEST_SCALAR_MULTIPLICATION) {
 		while (mpz_cmp(k, zero_value) == 0) {
 			get_random(k, 32); // generate random test (256 bits)
 			positive_modulo(k, k, modulo);
@@ -90,8 +91,96 @@ int main() {
 		mpz_out_str(stdout, 2, k);
 		printf("\n");
 
+		while (mpz_cmp(k2, zero_value) == 0) {
+			get_random(k2, 32); // generate random test (256 bits)
+			positive_modulo(k2, k2, modulo);
+		}
+		printf("Random k2 (in Binary): ");
+		mpz_out_str(stdout, 2, k2);
+		printf("\n");
+
+		/** Addition */
+		start(); // start operation
+		i = 0;
+		while (i < max_iteration) {
+			mpz_add(k, k, k2);
+			positive_modulo(k, k, modulo);
+			i++;
+		}
+		printf("--[ADDITION]--\n");
+		stop(); // stop operation
+
+		/** Multiplication */
+		start(); // start operation
+		i = 0;
+		mpz_t two;
+		mpz_init(two);
+		mpz_set_si(two, 2);
+		while (i < max_iteration) {
+			mpz_mul(k, k, two);
+			positive_modulo(k, k, modulo);
+			i++;
+		}
+		printf("--[MULTIPLICATION k * 2]--\n");
+		stop(); // stop operation
+
+		start(); // start operation
+		i = 0;
+		while (i < max_iteration) {
+			mpz_mul(k, k, k2);
+			positive_modulo(k, k, modulo);
+			i++;
+		}
+		printf("--[MULTIPLICATION k * k]--\n");
+		stop(); // stop operation
+
+		/** Inversion */
+		start(); // start operation
+		i = 0;
+		while (i < max_iteration) {
+			mpz_invert(k, k, modulo);
+			positive_modulo(k, k, modulo);
+			i++;
+		}
+		printf("--[INVERSION]--\n");
+		stop(); // stop operation
+	}
+
+	/** -------------------------------------------------------------------------*/
+	// Convert Affine coordinate to Jacobian coordinate
+	J_Point j_p, j_next_p;
+	j_next_p = init_j_point(j_next_p);
+	j_p = affine_to_jacobian(p); // Generator point
+
+	if (TEST_SCALAR_OPERATION) {
+		max_iteration = 100;
+		/** Affine addition */
+
+		/** Affine doubling */
+
+		/** Jacobian addition */
+
+		/** Jacobian doubling */
+
+		/** Affine-Jacobian addition */
+
+		/** Affine-Jacobian doubling */
+	}
+
+	/** -------------------------------------------------------------------------*/
+	if (TEST_SCALAR_ALGORITHM) {
+		max_iteration = 100;
+		while (mpz_cmp(k, zero_value) == 0) {
+			get_random(k, 32); // generate random test (256 bits)
+			positive_modulo(k, k, modulo);
+		}
+		printf("\nRandom k (in Binary): ");
+		mpz_out_str(stdout, 2, k);
+		printf("\n");
+
 		/** Test Left-to-right binary algorithm */
 		start(); // start operation
+		i = 0;
 		while (i < max_iteration) {
 			next_p = affine_left_to_right_binary(p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
@@ -202,6 +291,7 @@ int main() {
 
 	gmp_printf("Public key 1 - Affine [X Y]: %Zd %Zd\n", public_key_1_decoded.x, public_key_1_decoded.y);
 	gmp_printf("Public key 2 - Affine [X Y]: %Zd %Zd\n\n", public_key_2_decoded.x, public_key_2_decoded.y);
+
 	/** -------------------------------------------------------------------------*/
 	if (TEST_ENCRYPT_DECRYPT) {
 		// ElGamal Encrypt - Decrypt (Map message to chunk of points in EC)
