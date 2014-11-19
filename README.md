@@ -28,7 +28,11 @@ Also, you can define parts that you're interested in at main.c (as the following
 
     // Define your TEST here
     
-    #define TEST_SCALAR_MULTIPLICATION true
+    #define TEST_MODULAR_OPERATION true
+    
+    #define TEST_SCALAR_OPERATION true
+    
+    #define TEST_SCALAR_ALGORITHM true
     
     #define TEST_ENCRYPT_DECRYPT true
     
@@ -36,6 +40,10 @@ Also, you can define parts that you're interested in at main.c (as the following
 
 
 ## Additional Information
+
+This project is using RDTSC & RDTSCP for measuring average running time. ( Reference: https://idea.popcount.org/2013-01-28-counting-cycles---rdtsc/ )
+
+Make sure to "warm up" the code before benchmarking. (avoid cache effects in the first iteration)
 
 The report of this project will be published later.
 
@@ -50,4 +58,4 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Last Updated: November 14, 2014
+Last Updated: November 19, 2014

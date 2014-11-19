@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <assert.h>
 #include <math.h>
 #include <fcntl.h>
@@ -41,19 +42,50 @@ char*gy_v="4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
 char*s_v="c49d360886e704936a6678e1139d26b7819f7e90";
 char*c_v="7efba1662985be9403cb055c75d4f7e0ce8d84a9c5114abcaf3177680104fa0d";
 
-static struct timeval tm1;
+/** This benchmarking code is adapted from https://idea.popcount.org/2013-01-28-counting-cycles---rdtsc/ */
+#ifdef __i386__
+#  define RDTSC_DIRTY "%eax", "%ebx", "%ecx", "%edx"
+#elif __x86_64__
+#  define RDTSC_DIRTY "%rax", "%rbx", "%rcx", "%rdx"
+#else
+# error unknown platform
+#endif
 
-static inline void start() {
-	gettimeofday(&tm1, NULL);
+#define RDTSC_START(cycles)                                \
+    do {                                                   \
+        register unsigned cyc_high, cyc_low;               \
+        asm volatile("CPUID\n\t"                           \
+                     "RDTSC\n\t"                           \
+                     "mov %%edx, %0\n\t"                   \
+                     "mov %%eax, %1\n\t"                   \
+                     : "=r" (cyc_high), "=r" (cyc_low)     \
+                     :: RDTSC_DIRTY);                      \
+        (cycles) = ((uint64_t)cyc_high << 32) | cyc_low;   \
+    } while (0)
+
+#define RDTSC_STOP(cycles)                                 \
+    do {                                                   \
+        register unsigned cyc_high, cyc_low;               \
+        asm volatile("RDTSCP\n\t"                          \
+                     "mov %%edx, %0\n\t"                   \
+                     "mov %%eax, %1\n\t"                   \
+                     "CPUID\n\t"                           \
+                     : "=r" (cyc_high), "=r" (cyc_low)     \
+                     :: RDTSC_DIRTY);                      \
+        (cycles) = ((uint64_t)cyc_high << 32) | cyc_low;   \
+    } while(0)
+
+uint64_t t1, t2, total;
+// Constants, the minimum number of cycles required for calling RDTSC_START and RDTSC_STOP
+uint64_t rdtscp_cycle = 50;
+
+void print_result(uint64_t cycle, uint64_t one_us) {
+	printf("Number of iteration: %lld\n", max_iteration);
+	printf("Average number of cycles: %.2f cycles\n", ((double) cycle / max_iteration));
+	printf("Average elapsed time: %.8f us\n\n", ((double) cycle / one_us) / max_iteration);
 }
 
-static inline void stop() {
-	struct timeval tm2;
-	gettimeofday(&tm2, NULL);
 
-	double t = 1000 * (tm2.tv_sec - tm1.tv_sec) + (tm2.tv_usec - tm1.tv_usec) / 1000;
-	printf("Average elapsed time: %.8f ms\n", (double) t / max_iteration);
-}
 
 int main() {
 	/** Fm, where modulo = m */
@@ -79,6 +111,13 @@ int main() {
 	mpz_init(zero_value);
 	mpz_init(k2);
 
+	RDTSC_START(t1);
+	sleep(1); // sleep for 1 second
+	RDTSC_STOP(t2);
+	uint64_t one_second = t2 - t1 - rdtscp_cycle;
+	printf("Approximate number of cycles in 1 second: %lld\n\n", one_second);
+	uint64_t one_us = one_second / 1e6;
+
 	/** Compare ADDITION, MULTIPLICATION, and INVERSION */
 	if (TEST_MODULAR_OPERATION) {
 		max_iteration = 10000;
@@ -100,50 +139,62 @@ int main() {
 		printf("\n");
 
 		/** Addition */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			mpz_add(k, k, k2);
 			positive_modulo(k, k, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[ADDITION]--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
+		
 
 		/** Multiplication */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		mpz_t two;
 		mpz_init(two);
 		mpz_set_si(two, 2);
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			mpz_mul(k, k, two);
 			positive_modulo(k, k, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[MULTIPLICATION k * 2]--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			mpz_mul(k, k, k2);
 			positive_modulo(k, k, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[MULTIPLICATION k * k]--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
 		/** Inversion */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			mpz_invert(k, k, modulo);
-			positive_modulo(k, k, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[INVERSION]--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 	}
 
 	/** -------------------------------------------------------------------------*/
@@ -179,89 +230,110 @@ int main() {
 		printf("\n");
 
 		/** Test Left-to-right binary algorithm */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			next_p = affine_left_to_right_binary(p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[AFFINE] Left to right binary algorithm--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_left_to_right_binary(j_p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN] Left to right binary algorithm--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_left_to_right_binary(j_p, p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Left to right binary algorithm--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
-		start(); // start operation
 		int w = 4; // windows size
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Sliding NAF Left to right binary algorithm (w = 4)--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
-		start(); // start operation
 		w = 5; // windows size
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Sliding NAF Left to right binary algorithm (w = 5)--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
 		/** Test Right-to-left binary algorithm */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			next_p = affine_right_to_left_binary(p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[AFFINE] Right to left binary algorithm--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 
 		/** Test Montgomery ladder algorithm (Against time-based attack) */
-		start(); // start operation
 		i = 0;
+		total = 0;
 		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_montgomery_ladder(j_p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", j_next_p.X, j_next_p.Y);
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN] Montgomery ladder algorithm--\n");
-		stop(); // stop operation
+		print_result(total, one_us);
 	}
 
 	/** -------------------------------------------------------------------------*/
