@@ -146,7 +146,7 @@ Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo) {
 	return results;
 }
 
-Point affine_curve_substraction(Point p, Point q, mpz_t a, mpz_t modulo) {
+Point affine_curve_subtraction(Point p, Point q, mpz_t a, mpz_t modulo) {
 	mpz_neg(q.y, q.y);
 	return affine_curve_addition(p, q, a, modulo);
 }

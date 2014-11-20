@@ -30,12 +30,12 @@ int compare_j_point_negate(J_Point p, J_Point q);
 J_Point jacobian_curve_addition(J_Point p, J_Point q, mpz_t a, mpz_t modulo);
 // t(2J) = 4M + 6S
 J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo);
-J_Point jacobian_curve_substraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo);
+J_Point jacobian_curve_subtraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo);
 
 /** Mixed Coordinates */
 // t(J + A -> J) = 8M + 3S
 J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo);
-J_Point jacobian_affine_curve_substraction(J_Point p, Point q, mpz_t a, mpz_t modulo);
+J_Point jacobian_affine_curve_subtraction(J_Point p, Point q, mpz_t a, mpz_t modulo);
 // J_Point jacobian_affine_curve_doubling_addition(J_Point p, Point q, mpz_t a, mpz_t modulo); // ALG 17
 
 /** Convert Affine <-> Jacobian */

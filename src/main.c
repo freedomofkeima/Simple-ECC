@@ -180,7 +180,7 @@ int main() {
 			total += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
-		printf("--[MULTIPLICATION k * k]--\n");
+		printf("--[MULTIPLICATION k * k2]--\n");
 		print_result(total, one_us);
 
 		/** Inversion */
@@ -390,7 +390,7 @@ int main() {
 	
 		// Decrypt example (encoded_point - private_key * chosen_point)
 		decoded_point = jacobian_left_to_right_binary(chosen_point, a, private_key_2, modulo);
-		decoded_point = jacobian_curve_substraction(encoded_point, decoded_point, a, modulo);
+		decoded_point = jacobian_curve_subtraction(encoded_point, decoded_point, a, modulo);
 		gmp_printf("[Decrypt] Original message - Jacobian [X Y Z]: %Zd %Zd %Zd\n", decoded_point.X, decoded_point.Y, decoded_point.Z);
 		message_decoded = jacobian_to_affine(decoded_point, modulo);
 		gmp_printf("[Decrypt] Original message - Affine [X Y] %Zd %Zd\n\n", message_decoded.x, message_decoded.y);

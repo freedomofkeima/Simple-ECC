@@ -239,7 +239,7 @@ J_Point jacobian_curve_doubling(J_Point p, mpz_t a, mpz_t modulo) { // Point dou
 	return results;
 }
 
-J_Point jacobian_curve_substraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
+J_Point jacobian_curve_subtraction(J_Point p, J_Point q, mpz_t a, mpz_t modulo) {
 	mpz_neg(q.Y, q.Y);
 	return jacobian_curve_addition(p, q, a, modulo);
 }
@@ -322,7 +322,7 @@ J_Point jacobian_affine_curve_addition(J_Point p, Point q, mpz_t a, mpz_t modulo
 	return results;
 }
 
-J_Point jacobian_affine_curve_substraction(J_Point p, Point q, mpz_t a, mpz_t modulo) {
+J_Point jacobian_affine_curve_subtraction(J_Point p, Point q, mpz_t a, mpz_t modulo) {
 	mpz_neg(q.y, q.y);
 	return jacobian_affine_curve_addition(p, q, a, modulo);
 }

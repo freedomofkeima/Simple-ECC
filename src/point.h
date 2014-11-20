@@ -39,7 +39,7 @@ int compare_point_negate(Point p, Point q);
 Point affine_curve_addition(Point p, Point q, mpz_t a, mpz_t modulo);
 // t(2A) = 2M + 2S + I
 Point affine_curve_doubling(Point p, mpz_t a, mpz_t modulo);
-Point affine_curve_substraction(Point p, Point q, mpz_t a, mpz_t modulo);
+Point affine_curve_subtraction(Point p, Point q, mpz_t a, mpz_t modulo);
 
 #endif
 /* Created by freedomofkeima - 2014 */
