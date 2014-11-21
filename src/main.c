@@ -26,8 +26,8 @@
 #define TEST_MODULAR_OPERATION true
 #define TEST_SCALAR_OPERATION true
 #define TEST_SCALAR_ALGORITHM true
-#define TEST_ENCRYPT_DECRYPT true
-#define TEST_SIMPLIFIED_ECIES true
+#define TEST_ENCRYPT_DECRYPT false
+#define TEST_SIMPLIFIED_ECIES false
 
 
 long long max_iteration;
@@ -75,7 +75,7 @@ char*c_v="7efba1662985be9403cb055c75d4f7e0ce8d84a9c5114abcaf3177680104fa0d";
         (cycles) = ((uint64_t)cyc_high << 32) | cyc_low;   \
     } while(0)
 
-uint64_t t1, t2, total;
+uint64_t t1, t2;
 // Constants, the minimum number of cycles required for calling RDTSC_START and RDTSC_STOP
 uint64_t rdtscp_cycle = 50;
 
@@ -118,29 +118,29 @@ int main() {
 	printf("Approximate number of cycles in 1 second: %lld\n\n", one_second);
 	uint64_t one_us = one_second / 1e6;
 
-	/** Compare ADDITION, MULTIPLICATION, and INVERSION */
+	while (mpz_cmp(k, zero_value) == 0) {
+		get_random(k, 32); // generate random test (256 bits)
+		positive_modulo(k, k, modulo);
+	}
+	printf("Random k (in Binary): ");
+	mpz_out_str(stdout, 2, k);
+	printf("\n");
+
+	while (mpz_cmp(k2, zero_value) == 0) {
+		get_random(k2, 32); // generate random test (256 bits)
+		positive_modulo(k2, k2, modulo);
+	}
+	printf("Random k2 (in Binary): ");
+	mpz_out_str(stdout, 2, k2);
+	printf("\n");
+
+	/** Compare ADDITION, SHIFTING, MULTIPLICATION, and INVERSION */
 	if (TEST_MODULAR_OPERATION) {
 		max_iteration = 10000;
 
-		while (mpz_cmp(k, zero_value) == 0) {
-			get_random(k, 32); // generate random test (256 bits)
-			positive_modulo(k, k, modulo);
-		}
-		printf("Random k (in Binary): ");
-		mpz_out_str(stdout, 2, k);
-		printf("\n");
-
-		while (mpz_cmp(k2, zero_value) == 0) {
-			get_random(k2, 32); // generate random test (256 bits)
-			positive_modulo(k2, k2, modulo);
-		}
-		printf("Random k2 (in Binary): ");
-		mpz_out_str(stdout, 2, k2);
-		printf("\n");
-
 		/** Addition */
 		i = 0;
-		total = 0;
+		uint64_t total = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			mpz_add(k, k, k2);
@@ -153,48 +153,49 @@ int main() {
 		print_result(total, one_us);
 		
 
-		/** Multiplication */
+		/** Shifting */
 		i = 0;
-		total = 0;
+		uint64_t total2 = 0;
 		mpz_t two;
 		mpz_init(two);
 		mpz_set_si(two, 2);
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
-			mpz_mul(k, k, two);
+			mpz_mul_2exp(k, k, 1); // left shift
 			positive_modulo(k, k, modulo);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total2 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
-		printf("--[MULTIPLICATION k * 2]--\n");
-		print_result(total, one_us);
+		printf("--[SHIFTING 2 * k]--\n");
+		print_result(total2, one_us);
 
+		/** Multiplication */
 		i = 0;
-		total = 0;
+		uint64_t total3 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			mpz_mul(k, k, k2);
 			positive_modulo(k, k, modulo);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total3 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[MULTIPLICATION k * k2]--\n");
-		print_result(total, one_us);
+		print_result(total3, one_us);
 
 		/** Inversion */
 		i = 0;
-		total = 0;
+		uint64_t total4 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			mpz_invert(k, k, modulo);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total4 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[INVERSION]--\n");
-		print_result(total, one_us);
+		print_result(total4, one_us);
 	}
 
 	/** -------------------------------------------------------------------------*/
@@ -205,33 +206,90 @@ int main() {
 
 	if (TEST_SCALAR_OPERATION) {
 		max_iteration = 100;
+		Point p1, p2, p3;
+		J_Point j_p1, j_p2, j_p3;
+
+		/** Point preparation */
+		p1 = init_point(p1); p2 = init_point(p2);
+		j_p1 = init_j_point(j_p1); j_p2 = init_j_point(j_p2);
+		j_p1 = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, 4);
+		j_p2 = jacobian_affine_sliding_NAF(j_p, p, a, k2, modulo, 4);
+		p1 = jacobian_to_affine(j_p1, modulo);
+		p2 = jacobian_to_affine(j_p2, modulo);
+
 		/** Affine addition */
+		i = 0;
+		uint64_t total = 0;
+		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
+			p3 = affine_curve_addition(p1, p2, a, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total += t2 - t1 - rdtscp_cycle;
+			i++;
+		}
+		printf("--[ADDITION in AFFINE]--\n");
+		print_result(total, one_us);
 
 		/** Affine doubling */
+		i = 0;
+		uint64_t total2 = 0;
+		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
+			p3 = affine_curve_doubling(p1, a, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total2 += t2 - t1 - rdtscp_cycle;
+			i++;
+		}
+		printf("--[DOUBLING in AFFINE]--\n");
+		print_result(total2, one_us);
 
 		/** Jacobian addition */
+		i = 0;
+		uint64_t total3 = 0;
+		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
+			j_p3 = jacobian_curve_addition(j_p1, j_p2, a, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total3 += t2 - t1 - rdtscp_cycle;
+			i++;
+		}
+		printf("--[ADDITION in JACOBIAN]--\n");
+		print_result(total3, one_us);
 
 		/** Jacobian doubling */
+		i = 0;
+		uint64_t total4 = 0;
+		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
+			j_p3 = jacobian_curve_doubling(j_p1, a, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total4 += t2 - t1 - rdtscp_cycle;
+			i++;
+		}
+		printf("--[DOUBLING in JACOBIAN]--\n");
+		print_result(total4, one_us);
 
 		/** Affine-Jacobian addition */
-
-		/** Affine-Jacobian doubling */
+		i = 0;
+		uint64_t total5 = 0;
+		while (i < max_iteration) {
+			RDTSC_START(t1); // start operation
+			j_p3 = jacobian_affine_curve_addition(j_p1, p2, a, modulo);
+			RDTSC_STOP(t2); // stop operation
+			total5 += t2 - t1 - rdtscp_cycle;
+			i++;
+		}
+		printf("--[ADDITION in JACOBIAN-AFFINE]--\n");
+		print_result(total5, one_us);
 	}
 
 	/** -------------------------------------------------------------------------*/
 	if (TEST_SCALAR_ALGORITHM) {
 		max_iteration = 100;
-		while (mpz_cmp(k, zero_value) == 0) {
-			get_random(k, 32); // generate random test (256 bits)
-			positive_modulo(k, k, modulo);
-		}
-		printf("\nRandom k (in Binary): ");
-		mpz_out_str(stdout, 2, k);
-		printf("\n");
 
 		/** Test Left-to-right binary algorithm */
 		i = 0;
-		total = 0;
+		uint64_t total = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			next_p = affine_left_to_right_binary(p, a, k, modulo); // Q = [k]P
@@ -244,7 +302,7 @@ int main() {
 		print_result(total, one_us);
 
 		i = 0;
-		total = 0;
+		uint64_t total2 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_left_to_right_binary(j_p, a, k, modulo); // Q = [k]P
@@ -252,14 +310,14 @@ int main() {
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total2 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN] Left to right binary algorithm--\n");
-		print_result(total, one_us);
+		print_result(total2, one_us);
 
 		i = 0;
-		total = 0;
+		uint64_t total3 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_left_to_right_binary(j_p, p, a, k, modulo); // Q = [k]P
@@ -267,15 +325,15 @@ int main() {
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total3 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Left to right binary algorithm--\n");
-		print_result(total, one_us);
+		print_result(total3, one_us);
 
 		int w = 4; // windows size
 		i = 0;
-		total = 0;
+		uint64_t total4 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
@@ -283,15 +341,15 @@ int main() {
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total4 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Sliding NAF Left to right binary algorithm (w = 4)--\n");
-		print_result(total, one_us);
+		print_result(total4, one_us);
 
 		w = 5; // windows size
 		i = 0;
-		total = 0;
+		uint64_t total5 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_affine_sliding_NAF(j_p, p, a, k, modulo, w); // Q = [k]P
@@ -299,29 +357,29 @@ int main() {
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total5 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN-AFFINE] Sliding NAF Left to right binary algorithm (w = 5)--\n");
-		print_result(total, one_us);
+		print_result(total5, one_us);
 
 		/** Test Right-to-left binary algorithm */
 		i = 0;
-		total = 0;
+		uint64_t total6 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			next_p = affine_right_to_left_binary(p, a, k, modulo); // Q = [k]P
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total6 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[AFFINE] Right to left binary algorithm--\n");
-		print_result(total, one_us);
+		print_result(total6, one_us);
 
 		/** Test Montgomery ladder algorithm (Against time-based attack) */
 		i = 0;
-		total = 0;
+		uint64_t total7 = 0;
 		while (i < max_iteration) {
 			RDTSC_START(t1); // start operation
 			j_next_p = jacobian_montgomery_ladder(j_p, a, k, modulo); // Q = [k]P
@@ -329,11 +387,11 @@ int main() {
 			next_p = jacobian_to_affine(j_next_p, modulo);
 			// gmp_printf("%Zd %Zd\n", next_p.x, next_p.y);
 			RDTSC_STOP(t2); // stop operation
-			total += t2 - t1 - rdtscp_cycle;
+			total7 += t2 - t1 - rdtscp_cycle;
 			i++;
 		}
 		printf("--[JACOBIAN] Montgomery ladder algorithm--\n");
-		print_result(total, one_us);
+		print_result(total7, one_us);
 	}
 
 	/** -------------------------------------------------------------------------*/
