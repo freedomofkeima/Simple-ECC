@@ -24,7 +24,7 @@
 
 // Define your TEST here
 #define TEST_MODULAR_OPERATION true
-#define TEST_SCALAR_OPERATION true
+#define TEST_SCALAR_OPERATION false
 #define TEST_SCALAR_ALGORITHM true
 #define TEST_ENCRYPT_DECRYPT false
 #define TEST_SIMPLIFIED_ECIES false

@@ -45,7 +45,7 @@ This project is using RDTSC & RDTSCP for measuring average running time. ( Refer
 
 Make sure to "warm up" the code before benchmarking. (avoid cache effects in the first iteration)
 
-The report of this project will be published later.
+The report of this project can be accessed at https://www.researchgate.net/publication/268688957_Elliptic_Curve_Cryptography_Algorithms_and_Implementation_Analysis_over_Coordinate_Systems
 
 ---
 #### MIT License
